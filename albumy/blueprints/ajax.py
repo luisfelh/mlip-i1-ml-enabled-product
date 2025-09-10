@@ -10,6 +10,8 @@ from flask_login import current_user
 
 from albumy.models import User, Photo, Notification
 from albumy.notifications import push_collect_notification, push_follow_notification
+from albumy.utils import analyze_user_engagement
+from flask import jsonify, request
 
 ajax_bp = Blueprint('ajax', __name__)
 
@@ -105,3 +107,11 @@ def unfollow(username):
 
     current_user.unfollow(user)
     return jsonify(message='Follow canceled.')
+
+@ajax_bp.route("/user/<int:user_id>/engagement-insights")
+def engagement_insights(user_id):
+    try:
+        text = analyze_user_engagement(user_id, top_k=int(request.args.get("k", 12)))
+        return jsonify(ok=True, analysis=text)
+    except Exception as e:
+        return jsonify(ok=False, error=str(e)), 500

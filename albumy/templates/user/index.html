@@ -29,4 +29,30 @@
             {{ render_pagination(pagination, align='center') }}
         </div>
     {% endif %}
+<div class="card mt-4">
+    <div class="card-header">Engagement insights (beta)</div>
+    <div class="card-body">
+        <button id="load-insights" class="btn btn-sm btn-outline-primary">Generate analysis</button>
+        <div id="insights-content" class="mt-3 text-muted">
+        Click the button to run an LLM assessment over all posts.
+        </div>
+    </div>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('load-insights');
+    if (!btn) return;
+    btn.addEventListener('click', function(){
+        const box = document.getElementById('insights-content');
+        box.textContent = 'Analyzing… this can take a few seconds.';
+        fetch('{{ url_for("ajax.engagement_insights", user_id=user.id) }}')
+        .then(r => r.json())
+        .then(d => {
+            if (d.ok) { const html = DOMPurify.sanitize(marked.parse(d.analysis)); box.classList.remove('text-muted'); box.innerHTML = html; }
+            else { box.textContent = 'Error: ' + d.error; }
+        })
+        .catch(e => box.textContent = 'Error: ' + e);
+    });
+    });
+    </script>
 {% endblock %}

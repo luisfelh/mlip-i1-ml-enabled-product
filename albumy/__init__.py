@@ -21,7 +21,6 @@ from albumy.extensions import bootstrap, db, login_manager, mail, dropzone, mome
 from albumy.models import Role, User, Photo, Tag, Follow, Notification, Comment, Collect, Permission
 from albumy.settings import config
 
-
 def create_app(config_name=None):
     if config_name is None:
         config_name = os.getenv('FLASK_CONFIG', 'development')
@@ -134,7 +133,8 @@ def register_commands(app):
     @click.option('--tag', default=20, help='Quantity of tags, default is 20.')
     @click.option('--collect', default=50, help='Quantity of collects, default is 50.')
     @click.option('--comment', default=100, help='Quantity of comments, default is 100.')
-    def forge(user, follow, photo, tag, collect, comment):
+    @click.option('--gen-alt/--no-gen-alt', default=False, help='Generate alt text with Gemini after seeding')
+    def forge(user, follow, photo, tag, collect, comment, gen_alt):
         """Generate fake data."""
 
         from albumy.fakes import fake_admin, fake_comment, fake_follow, fake_photo, fake_tag, fake_user, fake_collect
@@ -158,4 +158,30 @@ def register_commands(app):
         fake_collect(collect)
         click.echo('Generating %d comments...' % comment)
         fake_comment(comment)
+
+        if gen_alt:
+            click.echo('Generating alt text with Gemini...')
+            import os
+            from flask import current_app
+            from albumy.models import Photo
+            from albumy.utils import generate_alt_text_gemini  # the helper we added earlier
+
+            base = current_app.config['ALBUMY_UPLOAD_PATH']
+            updated = 0
+            for p in Photo.query.all():
+                fname = p.filename_m or p.filename
+                if not fname:
+                    continue
+                path = os.path.join(base, fname)
+                if not os.path.exists(path):
+                    continue
+                try:
+                    p.alt_text = generate_alt_text_gemini(path)
+                    updated += 1
+                except Exception as e:
+                    click.echo(f"Skipping {fname}: {e}")
+            db.session.commit()
+            click.echo(f'Alt text updated for {updated} photos.')
+
         click.echo('Done.')
+

@@ -230,6 +230,7 @@ class Photo(db.Model):
     filename = db.Column(db.String(64))
     filename_s = db.Column(db.String(64))
     filename_m = db.Column(db.String(64))
+    alt_text = db.Column(db.String(300))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     can_comment = db.Column(db.Boolean, default=True)
     flag = db.Column(db.Integer, default=0)

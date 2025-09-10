@@ -15,6 +15,7 @@ from sqlalchemy.exc import IntegrityError
 
 from albumy.extensions import db
 from albumy.models import User, Photo, Tag, Comment, Notification
+from albumy.utils import generate_alt_text_gemini
 
 fake = Faker()
 
@@ -79,11 +80,16 @@ def fake_photo(count=30):
         img = Image.new(mode='RGB', size=(800, 800), color=(r(), r(), r()))
         img.save(os.path.join(upload_path, filename))
 
+        alt = generate_alt_text_gemini(os.path.join(upload_path, filename))
+        if not alt:
+            raise RuntimeError(f'Alt text generation failed for {filename}')
+
         photo = Photo(
             description=fake.text(),
             filename=filename,
             filename_m=filename,
             filename_s=filename,
+            alt_text=alt,
             author=User.query.get(random.randint(1, User.query.count())),
             timestamp=fake.date_time_this_year()
         )
